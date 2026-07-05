@@ -38,7 +38,10 @@ def process_event(db, event: dict) -> dict | None:
 
     stripe_object = event["data"]["object"]
     product_slug = _extract_product_slug(stripe_object)
-    gross_amount = _extract_gross_amount(event_type, stripe_object)
+    if event_type == "refund":
+        gross_amount = _refund_delta(db, stripe_object)
+    else:
+        gross_amount = _extract_gross_amount(event_type, stripe_object)
 
     rule = db.get_active_split_rule(product_slug) if product_slug else None
     if rule is not None:
@@ -89,10 +92,36 @@ def _extract_product_slug(stripe_object: dict) -> str | None:
     return None
 
 
+def _refund_delta(db, stripe_object: dict) -> Decimal:
+    """charge.refunded traz amount_refunded ACUMULADO da charge (nao o valor
+    deste reembolso). O delta real = acumulado - o que ja registramos de
+    reembolso para a mesma charge no ledger. Sem isso, 2 reembolsos parciais
+    de R$25 registrariam -25 e -50 (total -75, real -50)."""
+    cumulative = (Decimal(stripe_object.get("amount_refunded", 0)) / 100).quantize(
+        TWO_PLACES
+    )
+    charge_id = stripe_object.get("id")
+    if not charge_id:
+        return -cumulative  # sem id da charge nao ha como calcular delta
+
+    already_refunded = sum(
+        (-Decimal(e["gross_amount"]) for e in db.list_refund_entries_for_charge(charge_id)),
+        Decimal("0"),
+    )
+    delta = cumulative - already_refunded
+    if delta < 0:
+        delta = Decimal("0")  # replay fora de ordem: nunca "des-reembolsa"
+    return -delta.quantize(TWO_PLACES)
+
+
 def _extract_gross_amount(event_type: str, stripe_object: dict) -> Decimal:
     """Stripe manda centavos (int); convertemos para Decimal com 2 casas."""
     if event_type == "payment_succeeded":
-        cents = stripe_object.get("amount_received") or stripe_object.get("amount", 0)
+        # S7: 0 explicito e valor real (nada recebido) — so cai no fallback
+        # `amount` quando amount_received esta AUSENTE.
+        cents = stripe_object.get("amount_received")
+        if cents is None:
+            cents = stripe_object.get("amount", 0)
     elif event_type == "refund":
         cents = -(stripe_object.get("amount_refunded", 0))
     elif event_type == "invoice_paid":

@@ -75,6 +75,15 @@ class FakeDB:
         self.ledger.append(entry)
         return entry
 
+    def list_refund_entries_for_charge(self, charge_id: str) -> list[dict]:
+        return [
+            {"gross_amount": e["gross_amount"]}
+            for e in self.ledger
+            if e["event_type"] == "refund"
+            and e["raw_stripe_payload"].get("data", {}).get("object", {}).get("id")
+            == charge_id
+        ]
+
     def list_ledger_entries(
         self, product_slug: str | None = None, since: str | None = None
     ) -> list[dict]:

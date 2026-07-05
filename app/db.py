@@ -68,6 +68,18 @@ class SupabaseDB:
                 return self.get_ledger_entry(entry["stripe_event_id"])
             raise
 
+    def list_refund_entries_for_charge(self, charge_id: str) -> list[dict]:
+        """Reembolsos ja registrados para uma charge (S1: amount_refunded do
+        Stripe e acumulado; precisamos do que ja contabilizamos)."""
+        result = (
+            self._client.table(LEDGER)
+            .select("gross_amount")
+            .eq("event_type", "refund")
+            .eq("raw_stripe_payload->data->object->>id", charge_id)
+            .execute()
+        )
+        return result.data
+
     def list_ledger_entries(
         self, product_slug: str | None = None, since: str | None = None
     ) -> list[dict]:

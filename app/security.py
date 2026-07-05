@@ -36,11 +36,20 @@ def verify_stripe_signature(payload: bytes, signature_header: str | None) -> Non
     if not signature_header:
         raise rejection
 
-    parts = dict(
-        item.split("=", 1) for item in signature_header.split(",") if "=" in item
-    )
-    timestamp, received_v1 = parts.get("t"), parts.get("v1")
-    if not timestamp or not received_v1 or not timestamp.isdigit():
+    # Durante rotacao de secret o Stripe manda VARIOS v1 no mesmo header;
+    # a assinatura vale se QUALQUER um bater (spec oficial do Stripe).
+    timestamp = None
+    received_v1s = []
+    for item in signature_header.split(","):
+        if "=" not in item:
+            continue
+        key, value = item.split("=", 1)
+        if key == "t":
+            timestamp = value
+        elif key == "v1":
+            received_v1s.append(value)
+
+    if not timestamp or not received_v1s or not timestamp.isdigit():
         raise rejection
 
     if abs(time.time() - int(timestamp)) > STRIPE_TIMESTAMP_TOLERANCE_SECONDS:
@@ -49,5 +58,5 @@ def verify_stripe_signature(payload: bytes, signature_header: str | None) -> Non
     secret = get_settings().stripe_webhook_secret
     signed_payload = f"{timestamp}.".encode() + payload
     expected_v1 = hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
-    if not secrets.compare_digest(expected_v1, received_v1):
+    if not any(secrets.compare_digest(expected_v1, v1) for v1 in received_v1s):
         raise rejection
