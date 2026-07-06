@@ -17,6 +17,7 @@ from app.config import get_settings
 
 LEDGER = "financial_ledger"
 RULES = "product_split_rules"
+SPENDING = "spending_requests"
 UNIQUE_VIOLATION = "23505"
 
 
@@ -89,6 +90,24 @@ class SupabaseDB:
         if since is not None:
             query = query.gte("created_at", since)
         return query.execute().data
+
+    def list_spending_requests(self, status: str | None = None) -> list[dict]:
+        """Pedidos de gasto criados via n8n. Somente leitura — a decisao
+        (aprovar/rejeitar) acontece no n8n, nunca aqui."""
+        query = self._client.table(SPENDING).select("*")
+        if status is not None:
+            query = query.eq("status", status)
+        return query.order("requested_at", desc=True).execute().data
+
+    def get_spending_request(self, request_id: str) -> dict | None:
+        result = (
+            self._client.table(SPENDING)
+            .select("*")
+            .eq("id", request_id)
+            .limit(1)
+            .execute()
+        )
+        return result.data[0] if result.data else None
 
 
 @lru_cache

@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 
-from app.routers import health, reports, split_rules, webhooks
+from app.routers import health, reports, spending_requests, split_rules, webhooks
 
 
 def create_app() -> FastAPI:
@@ -11,6 +11,7 @@ def create_app() -> FastAPI:
     app.include_router(split_rules.router)
     app.include_router(webhooks.router)
     app.include_router(reports.router)
+    app.include_router(spending_requests.router)
     return app
 
 

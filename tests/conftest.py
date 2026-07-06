@@ -47,6 +47,7 @@ class FakeDB:
     def __init__(self):
         self.ledger = []
         self.split_rules = []
+        self.spending_requests = []
 
     def ping(self) -> bool:
         return True
@@ -93,6 +94,18 @@ class FakeDB:
         if since is not None:
             entries = [e for e in entries if e.get("created_at", "") >= since]
         return list(entries)
+
+    def list_spending_requests(self, status: str | None = None) -> list[dict]:
+        requests = self.spending_requests
+        if status is not None:
+            requests = [r for r in requests if r["status"] == status]
+        return sorted(requests, key=lambda r: r["requested_at"], reverse=True)
+
+    def get_spending_request(self, request_id: str) -> dict | None:
+        for request in self.spending_requests:
+            if request["id"] == request_id:
+                return request
+        return None
 
 
 @pytest.fixture

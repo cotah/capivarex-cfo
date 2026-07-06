@@ -60,4 +60,7 @@ def summary(db, product_slug: str | None = None, since: str | None = None) -> di
             "total_gross": str(pending_gross),
             "products": pending_products,
         },
+        # Pedidos de gasto aguardando decisao no n8n — receita + gastos
+        # pendentes numa visao so. Campo aditivo, nao afeta o resto.
+        "pending_spending_requests": len(db.list_spending_requests(status="pending")),
     }
