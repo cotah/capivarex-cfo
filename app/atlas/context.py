@@ -5,6 +5,7 @@ split (product_split_rules) e pedidos de gasto (spending_requests). Declara
 explicitamente o que NAO esta disponivel, para o ATLAS nunca inventar.
 """
 
+import os
 from decimal import Decimal
 
 
@@ -59,6 +60,13 @@ def build_financial_context(db) -> str:
             )
     else:
         lines.append("- Nenhuma regra cadastrada. Toda receita fica pendente de classificacao.")
+    dc = os.environ.get("DEFAULT_SPLIT_COMPANY_PCT")
+    dp = os.environ.get("DEFAULT_SPLIT_PRO_LABORE_PCT")
+    if dc and dp:
+        lines.append(
+            f"- Split PADRAO ativo (fallback): empresa {dc}% / pro-labore {dp}% "
+            "aplicado a toda receita SEM regra especifica de produto."
+        )
 
     lines.append("")
     lines.append("## Pedidos de gasto (spending_requests / CFO Gatekeeper)")

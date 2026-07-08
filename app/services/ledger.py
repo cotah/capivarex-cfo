@@ -9,6 +9,7 @@ Regras:
   para garantir que as partes fecham com o total (sem perder centavo).
 """
 
+import os
 from decimal import ROUND_HALF_UP, Decimal
 
 # Evento Stripe -> event_type do ledger. Eventos fora deste mapa sao ignorados.
@@ -22,6 +23,31 @@ EVENT_TYPE_MAP = {
 }
 
 TWO_PLACES = Decimal("0.01")
+
+
+def _default_split_rule() -> dict | None:
+    """Split PADRAO (fallback) aplicado quando nao ha regra especifica do produto.
+
+    Desligado por padrao (respeita 'nunca aplicar default sozinho'): so liga
+    quando DEFAULT_SPLIT_COMPANY_PCT e DEFAULT_SPLIT_PRO_LABORE_PCT estao
+    setados no ambiente e somam exatamente 100 (ex.: 75 e 25). Config invalida
+    => ignora (fail-safe: volta a pending_classification)."""
+    company_raw = os.environ.get("DEFAULT_SPLIT_COMPANY_PCT")
+    prolabore_raw = os.environ.get("DEFAULT_SPLIT_PRO_LABORE_PCT")
+    if not company_raw or not prolabore_raw:
+        return None
+    try:
+        company = Decimal(company_raw)
+        prolabore = Decimal(prolabore_raw)
+    except Exception:  # noqa: BLE001
+        return None
+    if company < 0 or prolabore < 0 or company + prolabore != Decimal("100"):
+        return None
+    return {
+        "company_pct": company,
+        "pro_labore_pct": prolabore,
+        "label": f"default:{company_raw}/{prolabore_raw}",
+    }
 
 
 def process_event(db, event: dict) -> dict | None:
@@ -44,6 +70,7 @@ def process_event(db, event: dict) -> dict | None:
         gross_amount = _extract_gross_amount(event_type, stripe_object)
 
     rule = db.get_active_split_rule(product_slug) if product_slug else None
+    default_rule = _default_split_rule() if rule is None else None
     if rule is not None:
         company_pct = Decimal(str(rule["company_pct"]))
         company_share = (gross_amount * company_pct / 100).quantize(
@@ -53,6 +80,15 @@ def process_event(db, event: dict) -> dict | None:
         split_rule_applied = (
             f"{rule['product_slug']}:{rule['company_pct']}/{rule['pro_labore_pct']}"
         )
+        status = "classified"
+    elif default_rule is not None:
+        # Sem regra do produto: aplica o split padrao global (ex.: 75/25).
+        company_pct = default_rule["company_pct"]
+        company_share = (gross_amount * company_pct / 100).quantize(
+            TWO_PLACES, rounding=ROUND_HALF_UP
+        )
+        pro_labore_share = gross_amount - company_share
+        split_rule_applied = default_rule["label"]
         status = "classified"
     else:
         company_share = None
