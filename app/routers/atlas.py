@@ -17,6 +17,15 @@ class AtlasAsk(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
 
 
+class SpendingEval(BaseModel):
+    agent: str | None = None
+    product: str | None = None
+    action: str = Field(min_length=1, max_length=500)
+    estimated_cost: float = Field(ge=0)
+    currency: str = "EUR"
+    description: str | None = Field(default=None, max_length=2000)
+
+
 def _ensure_llm() -> None:
     if not llm.llm_available():
         raise HTTPException(
@@ -41,3 +50,12 @@ def atlas_weekly(db=Depends(get_db)) -> dict:
         return {"report": service.weekly_report(db)}
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=f"Falha ao gerar relatorio: {e}") from e
+
+
+@router.post("/atlas/spending/evaluate", dependencies=[Depends(require_api_key)])
+def atlas_spending_evaluate(payload: SpendingEval, db=Depends(get_db)) -> dict:
+    _ensure_llm()
+    try:
+        return service.evaluate_spending(db, payload.model_dump())
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"Falha ao avaliar gasto: {e}") from e
