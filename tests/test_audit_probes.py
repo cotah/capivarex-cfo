@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 from app.db import get_db
 from app.main import create_app
-from conftest import FakeDB, stripe_signature
+from conftest import stripe_signature
 
 APPROVED_RULE = {
     "product_slug": "curso-x",

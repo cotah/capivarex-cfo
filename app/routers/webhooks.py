@@ -25,7 +25,7 @@ def _parse_event(payload: bytes) -> dict:
     try:
         event = json.loads(payload)
     except json.JSONDecodeError:
-        raise bad_request
+        raise bad_request from None
     if (
         not isinstance(event, dict)
         or not isinstance(event.get("id"), str)

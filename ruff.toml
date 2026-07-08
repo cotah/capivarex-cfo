@@ -1,0 +1,8 @@
+line-length = 100
+target-version = "py312"
+
+[lint]
+# Conservador: bugs reais + bugbear, sem reordenar imports/reformatar.
+select = ["E4", "E7", "E9", "F", "B"]
+# B008: Depends()/Header() como default e idiomatico no FastAPI.
+ignore = ["B008"]

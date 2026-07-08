@@ -66,7 +66,9 @@ class SupabaseDB:
             # Corrida rara: dois webhooks simultaneos do mesmo evento.
             # O UNIQUE(stripe_event_id) do banco segura; devolvemos o existente.
             if exc.code == UNIQUE_VIOLATION:
-                return self.get_ledger_entry(entry["stripe_event_id"])
+                existing = self.get_ledger_entry(entry["stripe_event_id"])
+                if existing is not None:
+                    return existing
             raise
 
     def list_refund_entries_for_charge(self, charge_id: str) -> list[dict]:

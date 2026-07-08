@@ -115,15 +115,18 @@ def _refund_delta(db, stripe_object: dict) -> Decimal:
 
 
 def _extract_gross_amount(event_type: str, stripe_object: dict) -> Decimal:
-    """Stripe manda centavos (int); convertemos para Decimal com 2 casas."""
+    """Stripe manda centavos (int); convertemos para Decimal com 2 casas.
+
+    Reembolsos NAO passam por aqui: process_event roteia event_type=="refund"
+    para _refund_delta (que calcula o delta acumulado). Por isso esta funcao
+    trata apenas os eventos de credito/neutros.
+    """
     if event_type == "payment_succeeded":
         # S7: 0 explicito e valor real (nada recebido) — so cai no fallback
         # `amount` quando amount_received esta AUSENTE.
         cents = stripe_object.get("amount_received")
         if cents is None:
             cents = stripe_object.get("amount", 0)
-    elif event_type == "refund":
-        cents = -(stripe_object.get("amount_refunded", 0))
     elif event_type == "invoice_paid":
         cents = stripe_object.get("amount_paid", 0)
     else:
