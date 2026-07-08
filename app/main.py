@@ -2,10 +2,12 @@
 
 from fastapi import FastAPI
 
+from app.observability import init_sentry
 from app.routers import health, reports, spending_requests, split_rules, webhooks
 
 
 def create_app() -> FastAPI:
+    init_sentry()
     app = FastAPI(title="Capivarex CFO Agent")
     app.include_router(health.router)
     app.include_router(split_rules.router)
