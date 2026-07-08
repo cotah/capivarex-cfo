@@ -60,6 +60,9 @@ class FakeDB:
         self.split_rules.append(rule)
         return rule
 
+    def list_split_rules(self) -> list[dict]:
+        return list(self.split_rules)
+
     def get_active_split_rule(self, product_slug: str) -> dict | None:
         for rule in self.split_rules:
             if rule["product_slug"] == product_slug and rule.get("active"):

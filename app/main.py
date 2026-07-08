@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 
 from app.observability import init_sentry
-from app.routers import health, reports, spending_requests, split_rules, webhooks
+from app.routers import atlas, health, reports, spending_requests, split_rules, webhooks
 
 
 def create_app() -> FastAPI:
@@ -14,6 +14,7 @@ def create_app() -> FastAPI:
     app.include_router(webhooks.router)
     app.include_router(reports.router)
     app.include_router(spending_requests.router)
+    app.include_router(atlas.router)
     return app
 
 

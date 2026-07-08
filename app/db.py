@@ -37,6 +37,10 @@ class SupabaseDB:
         )
         return result.data[0]
 
+    def list_split_rules(self) -> list[dict]:
+        """Todas as regras de split (para relatorios/ATLAS)."""
+        return self._client.table(RULES).select("*").execute().data
+
     def get_active_split_rule(self, product_slug: str) -> dict | None:
         result = (
             self._client.table(RULES)
