@@ -1,5 +1,7 @@
 """GET /reports/summary: agregacao e destaque de pending_classification."""
 
+from conftest import TEST_ACCOUNT_ID
+
 
 def ledger_entry(
     event_id,
@@ -12,6 +14,7 @@ def ledger_entry(
 ):
     return {
         "stripe_event_id": event_id,
+        "account_id": TEST_ACCOUNT_ID,
         "product_slug": slug,
         "event_type": "payment_succeeded",
         "gross_amount": gross,

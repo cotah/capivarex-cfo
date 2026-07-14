@@ -53,6 +53,8 @@ class SupabaseDB:
         return result.data[0] if result.data else None
 
     def get_ledger_entry(self, stripe_event_id: str) -> dict | None:
+        # Uso interno da ingestao (idempotencia). stripe_event_id e unico
+        # globalmente no Stripe; nao passa por endpoint de cliente.
         result = (
             self._client.table(LEDGER)
             .select("*")
@@ -88,27 +90,36 @@ class SupabaseDB:
         return result.data
 
     def list_ledger_entries(
-        self, product_slug: str | None = None, since: str | None = None
+        self,
+        account_id: str,
+        product_slug: str | None = None,
+        since: str | None = None,
     ) -> list[dict]:
-        query = self._client.table(LEDGER).select("*")
+        """Multi-tenant: account_id e obrigatorio — nunca ha leitura global."""
+        query = self._client.table(LEDGER).select("*").eq("account_id", account_id)
         if product_slug is not None:
             query = query.eq("product_slug", product_slug)
         if since is not None:
             query = query.gte("created_at", since)
         return query.execute().data
 
-    def list_spending_requests(self, status: str | None = None) -> list[dict]:
+    def list_spending_requests(
+        self, account_id: str, status: str | None = None
+    ) -> list[dict]:
         """Pedidos de gasto criados via n8n. Somente leitura — a decisao
         (aprovar/rejeitar) acontece no n8n, nunca aqui."""
-        query = self._client.table(SPENDING).select("*")
+        query = self._client.table(SPENDING).select("*").eq("account_id", account_id)
         if status is not None:
             query = query.eq("status", status)
         return query.order("requested_at", desc=True).execute().data
 
-    def get_spending_request(self, request_id: str) -> dict | None:
+    def get_spending_request(self, account_id: str, request_id: str) -> dict | None:
+        """Filtra por account_id tambem: id de outro workspace -> None (404),
+        nunca o dado do vizinho."""
         result = (
             self._client.table(SPENDING)
             .select("*")
+            .eq("account_id", account_id)
             .eq("id", request_id)
             .limit(1)
             .execute()

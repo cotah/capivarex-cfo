@@ -24,6 +24,15 @@ EVENT_TYPE_MAP = {
 
 TWO_PLACES = Decimal("0.01")
 
+# Workspace do dono (Henrique). Enquanto so existe o Stripe do dono, TODA
+# venda/assinatura ingerida e associada a este workspace — a associacao real
+# por cliente entra na Fase 2 (cobranca). Trocavel por env sem deploy.
+OWNER_ACCOUNT_ID = "00000000-0000-0000-0000-000000000001"
+
+
+def _ingestion_account_id() -> str:
+    return os.environ.get("STRIPE_DEFAULT_ACCOUNT_ID") or OWNER_ACCOUNT_ID
+
 
 def _default_split_rule() -> dict | None:
     """Split PADRAO (fallback) aplicado quando nao ha regra especifica do produto.
@@ -98,6 +107,8 @@ def process_event(db, event: dict) -> dict | None:
 
     entry = {
         "stripe_event_id": event["id"],
+        # FASE 1: tudo vai para o workspace do dono (ver _ingestion_account_id)
+        "account_id": _ingestion_account_id(),
         "product_slug": product_slug,
         "event_type": event_type,
         "gross_amount": str(gross_amount),

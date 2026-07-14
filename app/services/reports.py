@@ -7,8 +7,12 @@ falhar visivel e melhor que numero errado silencioso.
 from decimal import Decimal
 
 
-def summary(db, product_slug: str | None = None, since: str | None = None) -> dict:
-    entries = db.list_ledger_entries(product_slug=product_slug, since=since)
+def summary(
+    db, account_id: str, product_slug: str | None = None, since: str | None = None
+) -> dict:
+    entries = db.list_ledger_entries(
+        account_id, product_slug=product_slug, since=since
+    )
 
     total_gross = sum((Decimal(e["gross_amount"]) for e in entries), Decimal("0"))
     total_company = sum(
@@ -62,5 +66,7 @@ def summary(db, product_slug: str | None = None, since: str | None = None) -> di
         },
         # Pedidos de gasto aguardando decisao no n8n — receita + gastos
         # pendentes numa visao so. Campo aditivo, nao afeta o resto.
-        "pending_spending_requests": len(db.list_spending_requests(status="pending")),
+        "pending_spending_requests": len(
+            db.list_spending_requests(account_id, status="pending")
+        ),
     }

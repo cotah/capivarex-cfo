@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 from app.db import get_db
 from app.main import create_app
-from conftest import stripe_signature
+from conftest import TEST_ACCOUNT_ID, stripe_signature
 
 APPROVED_RULE = {
     "product_slug": "curso-x",
@@ -143,6 +143,7 @@ def test_s2_signed_event_missing_id_returns_400_not_500(raw_client, fake_db):
 def _entry(event_id, currency, gross):
     return {
         "stripe_event_id": event_id,
+        "account_id": TEST_ACCOUNT_ID,
         "product_slug": "curso-x",
         "event_type": "payment_succeeded",
         "gross_amount": gross,

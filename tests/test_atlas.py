@@ -1,10 +1,13 @@
 """Testes do ATLAS (CFO de IA) — LLM sempre mockada (sem custo/rede)."""
 
+from conftest import TEST_ACCOUNT_ID
+
 from app.atlas import context, service
 
 
 def _seed(fake_db):
     fake_db.ledger.append({
+        "account_id": TEST_ACCOUNT_ID,
         "gross_amount": "20.00", "product_slug": None,
         "event_type": "payment_succeeded", "status": "pending_classification",
         "currency": "usd",
@@ -14,7 +17,8 @@ def _seed(fake_db):
         "pro_labore_pct": 30, "active": True,
     })
     fake_db.spending_requests.append({
-        "id": "1", "agent": "ads", "product": "curso-x", "action": "meta ads",
+        "id": "1", "account_id": TEST_ACCOUNT_ID,
+        "agent": "ads", "product": "curso-x", "action": "meta ads",
         "estimated_cost": "300", "currency": "EUR", "status": "pending",
         "requested_at": "2026-07-01T00:00:00Z",
     })
@@ -22,7 +26,7 @@ def _seed(fake_db):
 
 def test_context_builder_has_sections(fake_db):
     _seed(fake_db)
-    ctx = context.build_financial_context(fake_db)
+    ctx = context.build_financial_context(fake_db, TEST_ACCOUNT_ID)
     assert "Receita" in ctx
     assert "pending_classification" in ctx
     assert "curso-x" in ctx

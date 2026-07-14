@@ -8,8 +8,8 @@ from app.atlas.llm import ask_llm
 from app.atlas.persona import ATLAS_SYSTEM
 
 
-def ask_atlas(db, question: str) -> str:
-    context = build_financial_context(db)
+def ask_atlas(db, account_id: str, question: str) -> str:
+    context = build_financial_context(db, account_id)
     prompt = (
         "CONTEXTO FINANCEIRO ATUAL (dados reais do sistema Capivarex CFO):\n"
         f"{context}\n\n"
@@ -18,8 +18,8 @@ def ask_atlas(db, question: str) -> str:
     return ask_llm(ATLAS_SYSTEM, prompt)
 
 
-def weekly_report(db) -> str:
-    context = build_financial_context(db)
+def weekly_report(db, account_id: str) -> str:
+    context = build_financial_context(db, account_id)
     prompt = (
         "CONTEXTO FINANCEIRO ATUAL (dados reais do sistema Capivarex CFO):\n"
         f"{context}\n\n"
@@ -54,7 +54,7 @@ def _format_request(req: dict) -> str:
     )
 
 
-def evaluate_spending(db, req: dict) -> dict:
+def evaluate_spending(db, account_id: str, req: dict) -> dict:
     """ATLAS avalia um pedido de gasto. Decide sozinho ate o limite (EUR);
     acima disso, ou em outra moeda, marca requires_founder_approval=True."""
     limit = _auto_approve_limit()
@@ -62,7 +62,7 @@ def evaluate_spending(db, req: dict) -> dict:
     currency = (req.get("currency") or "EUR").upper()
     over_limit = currency != "EUR" or cost > limit
 
-    context = build_financial_context(db)
+    context = build_financial_context(db, account_id)
     instruction = (
         "Avalie o PEDIDO DE GASTO abaixo como CFO, usando seu sistema de aprovacao. "
         "Comece a resposta com uma linha exatamente assim: "

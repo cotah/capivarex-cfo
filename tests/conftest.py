@@ -13,6 +13,10 @@ from app.main import create_app
 
 TEST_CFO_API_KEY = "test-cfo-key"
 TEST_WEBHOOK_SECRET = "whsec_test_secret"
+# Workspace usado nos testes (diferente do workspace do dono de proposito,
+# para provar que o filtro nao depende de nenhum default).
+TEST_ACCOUNT_ID = "11111111-1111-1111-1111-111111111111"
+OTHER_ACCOUNT_ID = "22222222-2222-2222-2222-222222222222"
 
 
 def stripe_signature(payload: bytes, timestamp: int | None = None) -> str:
@@ -89,24 +93,34 @@ class FakeDB:
         ]
 
     def list_ledger_entries(
-        self, product_slug: str | None = None, since: str | None = None
+        self,
+        account_id: str,
+        product_slug: str | None = None,
+        since: str | None = None,
     ) -> list[dict]:
-        entries = self.ledger
+        entries = [e for e in self.ledger if e.get("account_id") == account_id]
         if product_slug is not None:
             entries = [e for e in entries if e["product_slug"] == product_slug]
         if since is not None:
             entries = [e for e in entries if e.get("created_at", "") >= since]
         return list(entries)
 
-    def list_spending_requests(self, status: str | None = None) -> list[dict]:
-        requests = self.spending_requests
+    def list_spending_requests(
+        self, account_id: str, status: str | None = None
+    ) -> list[dict]:
+        requests = [
+            r for r in self.spending_requests if r.get("account_id") == account_id
+        ]
         if status is not None:
             requests = [r for r in requests if r["status"] == status]
         return sorted(requests, key=lambda r: r["requested_at"], reverse=True)
 
-    def get_spending_request(self, request_id: str) -> dict | None:
+    def get_spending_request(self, account_id: str, request_id: str) -> dict | None:
         for request in self.spending_requests:
-            if request["id"] == request_id:
+            if (
+                request["id"] == request_id
+                and request.get("account_id") == account_id
+            ):
                 return request
         return None
 
@@ -118,7 +132,8 @@ def fake_db():
 
 @pytest.fixture
 def auth_headers():
-    return {"X-API-Key": TEST_CFO_API_KEY}
+    """Headers do cliente logado: API key + workspace (multi-tenant)."""
+    return {"X-API-Key": TEST_CFO_API_KEY, "X-Account-Id": TEST_ACCOUNT_ID}
 
 
 @pytest.fixture

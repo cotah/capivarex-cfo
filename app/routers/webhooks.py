@@ -61,4 +61,10 @@ async def stripe_webhook(
         logger.info(
             "evento %s (%s): %s", event["id"], event["type"], entry["status"]
         )
+    # FASE 1 multi-tenant: sinaliza a qual workspace a entrada foi associada
+    # (por ora, tudo vai para o workspace do dono; associacao real na Fase 2).
+    logger.info(
+        "evento %s associado ao workspace %s (fase 1: Stripe unico do dono)",
+        event["id"], entry.get("account_id"),
+    )
     return {"received": True, "status": entry["status"]}

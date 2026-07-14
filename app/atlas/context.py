@@ -16,10 +16,12 @@ def _d(value) -> Decimal:
         return Decimal("0")
 
 
-def build_financial_context(db) -> str:
-    entries = db.list_ledger_entries()
+def build_financial_context(db, account_id: str) -> str:
+    """Contexto SEMPRE no escopo do workspace (account_id): o ATLAS de um
+    cliente nunca ve numeros de outro. Regras de split sao globais."""
+    entries = db.list_ledger_entries(account_id)
     rules = db.list_split_rules()
-    spending = db.list_spending_requests()
+    spending = db.list_spending_requests(account_id)
 
     total = Decimal("0")
     refunds = Decimal("0")

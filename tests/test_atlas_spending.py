@@ -1,10 +1,13 @@
 """Testes da avaliacao de gastos do ATLAS (auto ate o limite, escala acima)."""
 
+from conftest import TEST_ACCOUNT_ID
+
 from app.atlas import service
 
 
 def _seed(fake_db):
     fake_db.ledger.append({
+        "account_id": TEST_ACCOUNT_ID,
         "gross_amount": "20.00", "product_slug": None,
         "event_type": "payment_succeeded", "status": "pending_classification",
         "currency": "usd",

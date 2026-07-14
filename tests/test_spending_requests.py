@@ -4,6 +4,8 @@ Somente leitura de proposito — aprovar/rejeitar acontece no n8n,
 o CFO so expoe a visao.
 """
 
+from conftest import TEST_ACCOUNT_ID
+
 
 def spending_request(
     id_,
@@ -15,6 +17,7 @@ def spending_request(
 ):
     return {
         "id": id_,
+        "account_id": TEST_ACCOUNT_ID,
         "agent": agent,
         "product": product,
         "action": "buy_domain",
